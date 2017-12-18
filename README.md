@@ -10,10 +10,11 @@ The list of searched articles displays each headline and a link to that article 
 
 If a user creates an account and logs in, they can create a collection to save their favorite articles by selecting from the list of articles they have already searched for.
 
-Before running the code, you need to create the database "articles" by running the line of code:
-	createdb articles
+Before running the code, you need to create the database "articles" by running the line of code: createdb articles
 
 To run the code: python mainapp.py runserver
+
+The user can configure an email by exporting their username and password through terminal when running the application if they want to receieve emails when a new article is added to the list. If this is configured, the user will receieve an email from the Admin ameliagc364@gmail.com whenever a new year/month is searched for and a new article is added.
 
 The app is deployed to Heroku at the following URL: http://nytimes-article-search.herokuapp.com/.
 
