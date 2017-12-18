@@ -74,7 +74,7 @@ def send_email(to, subject, template, **kwargs):
 # Association table between search terms and articles
 titles = db.Table('titles',db.Column('search_id',db.Integer, db.ForeignKey('search.id')),db.Column('articles_id',db.Integer, db.ForeignKey('articles.id')))
 
-# assosciation table between articles and user's favorites collection
+# Assosciation table between articles and user's favorites collection
 user_collection = db.Table('user_collection',db.Column('user_id', db.Integer, db.ForeignKey('articles.id')),db.Column('collection_id',db.Integer, db.ForeignKey('favoriteArticles.id')))
 
 class User(UserMixin, db.Model):
@@ -134,7 +134,7 @@ class Search(db.Model):
 def load_user(user_id):
 	return User.query.get(int(user_id))
 
-# form to register new user 
+# Form to register new user 
 class RegistrationForm(FlaskForm):
 	email = StringField('Email:', validators=[Required(),Length(1,64),Email()])
 	username = StringField('Username:',validators=[Required(),Length(1,64),Regexp('^[A-Za-z][A-Za-z0-9_.]*$',0,'Usernames must have only letters, numbers, dots or underscores')])
@@ -169,7 +169,7 @@ class SaveFavoriteForm(FlaskForm):
     favorite_articles = SelectMultipleField('Articles to save')
     submit = SubmitField("Save")
 
-# get or create functions
+# Get or create functions
 def get_article_by_id(id):
     a = Article.query.filter_by(id=id).first()
     return a
@@ -249,8 +249,8 @@ def register():
 		flash('You can now log in!')
 		return redirect(url_for('login'))
 	return render_template('register.html',form=form)
-###
 
+# View routes
 @app.route('/', methods=['GET', 'POST'])
 def index():
     articles = Article.query.all()
@@ -276,7 +276,7 @@ def index():
         	data = docs[0]
         	articleFieldsRequired = []
 
-        	# Check to see if any fields are empty, if so print statement
+        	# Check to see if any fields are empty, if so add statement to database instead of null value
         	if data['headline'] == None:
         		headline = "No headline"
         	else:
