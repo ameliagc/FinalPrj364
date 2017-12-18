@@ -1,5 +1,4 @@
 import os
-import requests
 import json
 from flask import Flask, render_template, session, redirect, request, url_for, flash
 from flask_script import Manager, Shell
