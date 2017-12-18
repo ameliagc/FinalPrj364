@@ -1,12 +1,21 @@
 <h1>Welcome to the New York Times archive search tool</h1>
-<p>Start by searching articles from a given month and year.
+<p>Start by searching articles from a given month and year.<br>
+	The search function will return one article from that month and year.<br>
 	If you create an account, you can save your favorites.</p>
 
+<form method="POST">
+	{{ form.hidden_tag() }}
+	{{ form.search.label }} {{ form.search() }}
+	{{ form.submit() }}
+</form>
+
+<br>
+
 {% if current_user.is_authenticated %}
-    <a href="{{ url_for('logout') }}">Sign Out {{current_user.username}}</a><br><br>
     <a href="{{ url_for('save_favorites') }}">Save your favorite articles!</a><br><br>
     <a href="{{ url_for('index')}}">Return to add a new article</a><br><br>
-    <a href="{{ url_for('seeFavArticles')}}">See articles you've saved.</a>
+    <a href="{{ url_for('seeFavArticles')}}">See articles you've saved to your collection.</a><br><br>
+    <a href="{{ url_for('logout') }}">Sign Out {{current_user.username}}</a><br><br>
 {% else %}
     <a href="{{ url_for('login') }}">Sign In</a>
 {% endif %}
@@ -14,12 +23,6 @@
 <div class="page-header">
     <p><a href="{{ url_for('see_all') }}">See all articles that have been searched for.</a></p>
 </div>
-
-<form method="POST">
-	{{ form.hidden_tag() }}
-	{{ form.search.label }} {{ form.search() }}
-	{{ form.submit() }}
-</form>
 
 <div>
 {% for message in get_flashed_messages() %}
