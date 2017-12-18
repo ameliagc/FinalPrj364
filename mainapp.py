@@ -9,6 +9,7 @@ from wtforms.validators import Required, Length, Email, Regexp, EqualTo
 from flask_sqlalchemy import SQLAlchemy
 import random
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail, Message
 from threading import Thread
 from werkzeug import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -27,31 +28,50 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['HEROKU_ON'] = os.environ.get('HEROKU')
 
+# Email configuration
+app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+app.config['MAIL_PORT'] = 587 #default
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_SUBJECT_PREFIX'] = '[NYTimes Articles App]'
+app.config['MAIL_SENDER'] = 'Admin <ameliagc364@gmail.com>'
+app.config['ADMIN'] = os.environ.get('ADMIN')
+
 # Set up Flask debug and necessary additions to app
 manager = Manager(app)
 db = SQLAlchemy(app) # For database use
 migrate = Migrate(app, db) # For database use/updating
 manager.add_command('db', MigrateCommand) # Add migrate command to manager
+mail = Mail(app) # For email sending
 
 # Login configurations setup
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'login'
-login_manager.init_app(app) # set up login manager
+login_manager.init_app(app)
 
-## Set up Shell context so it's easy to use the shell to debug
-# Define function
+# Shell function
 def make_shell_context():
     return dict( app=app, db=db, User=User, FavoriteArticles=FavoriteArticles, Article=Article, Search=Search)
-# Add function use to manager
 manager.add_command("shell", Shell(make_context=make_shell_context))
 
-# Archive API key 90bc58d558884138ac19ed6e27640df7
-# Article API key 90bc58d558884138ac19ed6e27640df7
+# Send email functions
+def send_async_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
 
-# set up classes for each database table and user login
-# user class
-# association table between search terms and articles
+def send_email(to, subject, template, **kwargs):
+    msg = Message(app.config['MAIL_SUBJECT_PREFIX'] + ' ' + subject,
+                  sender=app.config['MAIL_SENDER'], recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+
+# Set up for tables
+# Association table between search terms and articles
 titles = db.Table('titles',db.Column('search_id',db.Integer, db.ForeignKey('search.id')),db.Column('articles_id',db.Integer, db.ForeignKey('articles.id')))
 
 # assosciation table between articles and user's favorites collection
@@ -94,13 +114,11 @@ class FavoriteArticles(db.Model):
 class Article(db.Model):
 	__tablename__ = "articles"
 	id = db.Column(db.Integer, primary_key=True)
-	headline = db.Column(db.String(128))
-	byline = db.Column(db.String(128))
-	date = db.Column(db.String(128))
+	headline = db.Column(db.String)
 	url = db.Column(db.String)
 
 	def __repr__(self):
-		return "{} : {}".format(self.headline,self.date)
+		return "{} : {}".format(self.headline,self.url)
 
 class Search(db.Model):
 	__tablename__ = "search"
@@ -116,9 +134,7 @@ class Search(db.Model):
 def load_user(user_id):
 	return User.query.get(int(user_id))
 
-# forms
 # form to register new user 
-# login form
 class RegistrationForm(FlaskForm):
 	email = StringField('Email:', validators=[Required(),Length(1,64),Email()])
 	username = StringField('Username:',validators=[Required(),Length(1,64),Regexp('^[A-Za-z][A-Za-z0-9_.]*$',0,'Usernames must have only letters, numbers, dots or underscores')])
@@ -135,16 +151,19 @@ class RegistrationForm(FlaskForm):
 		if User.query.filter_by(username=field.data).first():
 			raise ValidationError('Username already taken')
 
+# Login form
 class LoginForm(FlaskForm):
 	email = StringField('Email', validators=[Required(), Length(1,64), Email()])
 	password = PasswordField('Password', validators=[Required()])
 	remember_me = BooleanField('Keep me logged in')
 	submit = SubmitField('Log In')
 
+# Form to search archive for an article
 class ArticleSearchForm(FlaskForm):
 	search = StringField("Enter a year and month in the following format: YYYY M (ex. 2017 2 for February 2017).", validators=[Required()])
 	submit = SubmitField('Submit')
 
+# Form to choose favorite articles
 class SaveFavoriteForm(FlaskForm):
     name = StringField('Collection Name',validators=[Required()])
     favorite_articles = SelectMultipleField('Articles to save')
@@ -163,18 +182,18 @@ def get_or_create_search_term(db_session, term, article_list = []):
 	else:
 		print("Added term")
 		for a in article_list:
-			article = get_or_create_article(db_session, headline=a[0], byline=a[1], date=a[2], url=a[3])
+			article = get_or_create_article(db_session, headline=a[0], url=a[1])
 		searchTerm = Search(term=term)    
 		db_session.add(searchTerm)
 		db_session.commit()
 		return searchTerm
 
-def get_or_create_article(db_session, headline, byline, date, url):
+def get_or_create_article(db_session, headline, url):
 	article = db.session.query(Article).filter_by(headline=headline).first()
 	if article:
 		return article
 	else:
-		article = Article(headline=headline, byline=byline, date=date, url=url)
+		article = Article(headline=headline, url=url)
 		db_session.add(article)
 		db_session.commit()
 		return article
@@ -191,17 +210,15 @@ def get_or_create_personal_collection(db_session, name, article_list, current_us
         db_session.commit()
         return savedArticles
 
-# search archive for article
-# save article to user account
+# Error handling routes
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
-# error handling functions
 
-# route pages
-# home page- option to search or login
-# create account page
-# page to view results from search
-# view saved articles
-# page to view selected article and text
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
 
 ## Login routes
 @app.route('/login',methods=["GET","POST"])
@@ -243,7 +260,7 @@ def index():
             term = db.session.query(Search).filter_by(term=form.search.data).first()
             all_articles = []
             for i in articles:
-                all_articles.append((i.headline, i.byline, i.date, i.url))
+                all_articles.append((i.headline, i.url))
             return render_template('all_articles.html', all_articles = all_articles)
         else:
         	search_split = form.search.data.split()
@@ -258,8 +275,23 @@ def index():
         	docs = response['docs']
         	data = docs[0]
         	articleFieldsRequired = []
-        	articleFieldsRequired.append((data['headline']['main'], data['byline']['person'][0]['lastname'], data['pub_date'], data['web_url']))
+
+        	# Check to see if any fields are empty, if so print statement
+        	if data['headline'] == None:
+        		headline = "No headline"
+        	else:
+        		headline = data['headline']['main']
+
+        	if data['web_url'] == None:
+        		url = "https://www.nytimes.com/"
+        	else:
+        		url = data['web_url']
+
+        	articleFieldsRequired.append((headline, url))
         	searchterm = get_or_create_search_term(db.session, form.search.data, articleFieldsRequired)
+        	if app.config['ADMIN']:
+        		send_email(app.config['ADMIN'], 'New Article','mail/new_article', song=form.song.data)
+        		flash("Email would be sent to {} if email secure server were set up".format(app.config['ADMIN']))
     return render_template('index.html', form=form)
 
 @app.route('/all_articles')
@@ -267,7 +299,7 @@ def see_all():
     all_articles = []
     article_all = Article.query.all()
     for a in article_all:
-        all_articles.append((a.headline, a.byline, a.date, a.url))
+        all_articles.append((a.headline, a.url))
     return render_template('all_articles.html', all_articles=all_articles)
 
 @app.route('/create_article_collection',methods=["GET","POST"])
