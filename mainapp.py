@@ -25,6 +25,7 @@ app.config['SECRET_KEY'] = 'hardtoguessstring'
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get('DATABASE_URL') or "postgresql://localhost/articles"
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['HEROKU_ON'] = os.environ.get('HEROKU')
 
 # Set up Flask debug and necessary additions to app
 manager = Manager(app)
@@ -37,6 +38,13 @@ login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'login'
 login_manager.init_app(app) # set up login manager
+
+## Set up Shell context so it's easy to use the shell to debug
+# Define function
+def make_shell_context():
+    return dict( app=app, db=db)
+# Add function use to manager
+manager.add_command("shell", Shell(make_context=make_shell_context))
 
 # Archive API key 90bc58d558884138ac19ed6e27640df7
 # Article API key 90bc58d558884138ac19ed6e27640df7
