@@ -36,7 +36,8 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_SUBJECT_PREFIX'] = '[NYTimes Articles App]'
 app.config['MAIL_SENDER'] = 'Admin <ameliagc364@gmail.com>'
-app.config['ADMIN'] = os.environ.get('ADMIN')
+app.config['ADMIN'] = os.environ.get('ADMIN') or "ameliagc364@gmail.com"
+app.config['HEROKU_ON'] = os.environ.get('HEROKU')
 
 # Set up Flask debug and necessary additions to app
 manager = Manager(app)
@@ -291,7 +292,7 @@ def index():
         	searchterm = get_or_create_search_term(db.session, form.search.data, articleFieldsRequired)
         	# Set up to send email if new article is searched for
         	if app.config['ADMIN']:
-        		send_email(app.config['ADMIN'], 'New Article','mail/new_article', song=form.song.data)
+        		send_email(app.config['ADMIN'], 'New Article','mail/new_article', song=form.search.data)
         		flash("Email would be sent to {} if email secure server were set up".format(app.config['ADMIN']))
         	flash('A new article has been successfully added to your list!')
     return render_template('index.html', form=form)
