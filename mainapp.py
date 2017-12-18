@@ -42,7 +42,7 @@ login_manager.init_app(app) # set up login manager
 ## Set up Shell context so it's easy to use the shell to debug
 # Define function
 def make_shell_context():
-    return dict( app=app, db=db)
+    return dict( app=app, db=db, User=User, FavoriteArticles=FavoriteArticles, Article=Article, Search=Search)
 # Add function use to manager
 manager.add_command("shell", Shell(make_context=make_shell_context))
 
