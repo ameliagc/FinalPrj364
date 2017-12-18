@@ -289,9 +289,11 @@ def index():
 
         	articleFieldsRequired.append((headline, url))
         	searchterm = get_or_create_search_term(db.session, form.search.data, articleFieldsRequired)
+        	# Set up to send email if new article is searched for
         	if app.config['ADMIN']:
         		send_email(app.config['ADMIN'], 'New Article','mail/new_article', song=form.song.data)
         		flash("Email would be sent to {} if email secure server were set up".format(app.config['ADMIN']))
+        	flash('A new article has been successfully added to your list!')
     return render_template('index.html', form=form)
 
 @app.route('/all_articles')
