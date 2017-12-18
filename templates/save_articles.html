@@ -1,0 +1,12 @@
+<h1>Pick your favorite articles to save to your collection.</h1>
+
+<form method="POST">
+	{{ form.hidden_tag() }}
+	{{ form.name.label }} {{ form.name() }}
+	{{ form.favorite_articles.label }} {{ form.favorite_articles() }}
+	{{ form.submit.label }}{{ form.submit() }}
+</form>
+
+<a href="{{ url_for('seeFavArticles')}}">See your collection</a><br>
+
+<a href="{{ url_for('index')}}">Home</a>

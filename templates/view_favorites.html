@@ -1,0 +1,14 @@
+<h1> Here is a list of the articles you have saved:</h1>
+
+<ul>
+{% for a in fav_articles %}
+<li>
+  <h1>{{ a[1] }}</h1> in the collection {{ a[0] }}</p>
+
+  </br>
+</li>
+{% endfor %}
+
+<br>
+<a href="{{ url_for('index')}}">Home</a>
+<br>
