@@ -293,7 +293,7 @@ def index():
         	# Set up to send email if new article is searched for
         	if app.config['ADMIN']:
         		send_email(app.config['ADMIN'], 'New Article','mail/new_article', song=form.search.data)
-        		flash("Email would be sent to {} if email secure server were set up".format(app.config['ADMIN']))
+        		flash("If email was configured, notification email was sent from {} to user.".format(app.config['ADMIN']))
         	flash('A new article has been successfully added to your list!')
     return render_template('index.html', form=form)
 
