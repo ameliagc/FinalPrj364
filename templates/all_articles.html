@@ -2,9 +2,7 @@
 {% for a in all_articles %}
 <li>
   <h1>{{ a[0] }}</h1>
-  <p>Author: {{ a[1] }}</p>
-  <p>Date and Time Published: {{ a[2] }}</p>
-  <a href = "{{ a[3] }}">Article Link</a>
+  <a href = "{{ a[1] }}">Article Link</a>
   </br>
 </li>
 {% endfor %}
